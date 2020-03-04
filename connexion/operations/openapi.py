@@ -289,8 +289,6 @@ class OpenAPIOperation(AbstractOperation):
 
     def _get_body_argument_form(self, body, arguments, has_kwargs, sanitize):
         x_body_name = sanitize(self.body_schema.get('x-body-name', 'body'))
-        if is_nullable(self.body_schema) and is_null(body):
-            return {x_body_name: None}
 
         default_body = self.body_schema.get('default', {})
         body_props = {k: {"schema": v} for k, v
@@ -299,14 +297,6 @@ class OpenAPIOperation(AbstractOperation):
         # by OpenAPI specification `additionalProperties` defaults to `true`
         # see: https://github.com/OAI/OpenAPI-Specification/blame/3.0.2/versions/3.0.2.md#L2305
         additional_props = self.body_schema.get("additionalProperties", True)
-
-        if body is None:
-            body = deepcopy(default_body)
-
-        if self.body_schema.get("type") != "object":
-            if x_body_name in arguments or has_kwargs:
-                return {x_body_name: body}
-            return {}
 
         body_arg = deepcopy(default_body)
         body_arg.update(body or {})
