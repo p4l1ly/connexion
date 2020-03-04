@@ -18,11 +18,15 @@ paths:
             schema:
               type: object
               additionalProperties: false
+              required:
+                - foo
               properties:
                 foo:
                   oneOf:
                     - {type: boolean}
                     - {type: number}
+              default:
+                foo: false
       responses:
         '200':
           description: Echo the validated request.
