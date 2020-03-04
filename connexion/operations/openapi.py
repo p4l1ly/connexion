@@ -269,63 +269,9 @@ class OpenAPIOperation(AbstractOperation):
 
     def _get_body_argument(self, body, arguments, has_kwargs, sanitize):
         x_body_name = sanitize(self.body_schema.get('x-body-name', 'body'))
-        if is_nullable(self.body_schema) and is_null(body):
-            return {x_body_name: None}
-
-        default_body = self.body_schema.get('default', {})
-        body_props = {k: {"schema": v} for k, v
-                      in self.body_schema.get("properties", {}).items()}
-
-        # by OpenAPI specification `additionalProperties` defaults to `true`
-        # see: https://github.com/OAI/OpenAPI-Specification/blame/3.0.2/versions/3.0.2.md#L2305
-        additional_props = self.body_schema.get("additionalProperties", True)
-
-        if body is None:
-            body = deepcopy(default_body)
-
-        if self.body_schema.get("type") != "object":
-            if x_body_name in arguments or has_kwargs:
-                return {x_body_name: body}
-            return {}
-
-        body_arg = deepcopy(default_body)
-        body_arg.update(body or {})
-
-        res = {}
-        if body_props or additional_props:
-            res = self._get_typed_body_values(body_arg, body_props, additional_props)
-
         if x_body_name in arguments or has_kwargs:
-            return {x_body_name: res}
+            return {x_body_name: body}
         return {}
-
-    def _get_typed_body_values(self, body_arg, body_props, additional_props):
-        """
-        Return a copy of the provided body_arg dictionary
-        whose values will have the appropriate types
-        as defined in the provided schemas.
-
-        :type body_arg: type dict
-        :type body_props: dict
-        :type additional_props: dict|bool
-        :rtype: dict
-        """
-        additional_props_defn = {"schema": additional_props} if isinstance(additional_props, dict) else None
-        res = {}
-
-        for key, value in body_arg.items():
-            try:
-                prop_defn = body_props[key]
-                res[key] = self._get_val_from_param(value, prop_defn)
-            except KeyError:  # pragma: no cover
-                if not additional_props:
-                    logger.error("Body property '{}' not defined in body schema".format(key))
-                    continue
-                if additional_props_defn is not None:
-                    value = self._get_val_from_param(value, additional_props_defn)
-                res[key] = value
-
-        return res
 
     def _build_default_obj_recursive(self, _properties, res):
         """ takes disparate and nested default keys, and builds up a default object
